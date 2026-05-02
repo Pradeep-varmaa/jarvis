@@ -1,66 +1,95 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
+import React, { useEffect, useRef, useState } from 'react'
+import style from './page.module.css'
+import { AudioOutlined } from '@ant-design/icons'
+import { FaTelegramPlane } from "react-icons/fa";
 
-export default function Home() {
+const Homepage = () => {
+
+  const [command, setCommand] = useState('')
+  const [messages, setMessages] = useState([
+    { sender: "jarvis", text: "Hello! I'm Jarvis 👋" }
+  ]);
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const getResponse = async (userCommand?: string) => {
+    const cmd = userCommand || command;
+    setCommand('')
+    setMessages(prev => [...prev, { sender: "user", text: cmd }]);
+    const req = await fetch('http://127.0.0.1:5000/jarvis', {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ command: command })
+    })
+    const res = await req.json()
+    setCommand('')
+    setMessages(prev => [...prev, { sender: "jarvis", text: res.response }]);
+    console.log("res : ", res.response)
+  }
+
+  const handlecommand = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await getResponse()
+
+  }
+
+  const listen = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      console.log("Browser not supported")
+      return
+    }
+    // console.log("Listening.....")
+
+    const recognition = new SpeechRecognition();
+
+    recognition.start()
+    recognition.onresult = (event: any) => {
+      console.log(event)
+      const text = event.results[0][0].transcript
+      // setCommand(text)
+      getResponse(text)
+    }
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className={style.container}>
+      <div className={style.mic_sym} onClick={listen}>
+        <AudioOutlined />
+      </div>
+      <div className={style.chatContainer}>
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            className={
+              msg.sender === "user"
+                ? style.userMessage
+                : style.botMessage
+            }
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            {msg.text}
+          </div>
+        ))}
+        <div ref={chatEndRef} />
+      </div>
+      <div>
+        <form action="" onSubmit={handlecommand} className={style.form}>
+          <input className={style.input} type="text" name='command' id='command' placeholder='Ask Jarvis' value={command} onChange={(e) => { setCommand(e.target.value) }} />
+          <button type='submit' className={style.button}><FaTelegramPlane size={24} color="#ffffff" /> Send</button>
+        </form>
+      </div>
     </div>
-  );
+  )
 }
+
+export default Homepage
