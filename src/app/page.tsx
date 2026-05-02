@@ -21,7 +21,7 @@ const Homepage = () => {
     const cmd = userCommand || command;
     setCommand('')
     setMessages(prev => [...prev, { sender: "user", text: cmd }]);
-    const req = await fetch('http://127.0.0.1:5000/jarvis', {
+    const req = await fetch('https://jarvis-backend-1-2k6f.onrender.com/jarvis', {
       method: "POST",
       headers: {
         "content-type": "application/json"
